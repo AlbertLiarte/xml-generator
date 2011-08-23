@@ -1,0 +1,106 @@
+#!/bin/bash
+
+## script to generate a sitemap.xml
+
+## this script should be placed on the root folder of a website
+## and the global variable websiteName should contain the name of that website
+## it generates the sitemap.xml file with all the pages in the htm and html files
+## in the subfolders as well as the ones in the root folder
+
+## Author: Emanuele Pugliese
+## Author: Albert Liarte Cano
+
+##Date: 21/08/2011
+#################################################################
+
+##  			GLOBAL VARIABLES
+
+#################################################################
+
+websiteName="http://www.puglieseweb.com/"
+XML_FILE="sitemap.xml"
+
+#################################################################
+
+##			XML PRINTER FUNCTIONS
+
+#################################################################
+
+printHeader(){
+
+	echo '<?xml version="1.0" encoding="UTF-8"?>'
+	echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+
+}
+
+printFooter(){
+
+	echo "</urlset>"
+
+}
+
+findHtmlAndPrintLine(){ 
+
+        path=$1
+        find $path -maxdepth 1 -regex ".*\(html\|htm\)$" | while read path ; do
+		link_name=`basename $path .html`
+		path="`echo $path | cut -d / -f2-`"
+                echo "<url><loc>$websiteName$path</loc></url>"
+        done
+
+}
+
+printListInRoot(){
+	
+	ls | grep -E "(htm|html)$" | while read file ; do
+		echo "<url><loc>$websiteName$file</loc></url>"
+	done	
+
+}
+
+createList(){
+
+        for folder in $@; do
+                if [ -d $folder ]; then 
+                        if [ $folder != "." ]; then 
+                                if [ $(findHtmlAndPrintLine $folder| wc -l) -ne 0 ]; then 
+                                        findHtmlAndPrintLine $folder
+                                fi
+			fi
+			createList `find $folder -maxdepth 1 -type d | sed '1d'` 
+                fi
+	done
+
+}
+##############################################################
+
+### script starts running here
+clear
+
+echo "Some information about the script:"
+echo ""
+echo "This script creates or modifies an already existing"
+echo "'sitemap.xml' file to include all the '*.html' and '*.htm'"
+echo "in the subfolders as well in the root folder and"
+echo "write the correct tags for a sitemap."
+echo ""
+echo "The sitemap.xml file will be located in:"
+echo ""
+pwd
+
+
+if [ ! -f $XML_FILE ]; then
+	echo "\n\nNew \"$XML_FILE\" created!"
+else
+	rm ./$XML_FILE
+	echo "\n\nFile \"$XML_FILE\" updated!"
+fi
+
+printHeader > $XML_FILE
+printListInRoot >> $XML_FILE
+createList "." >> $XML_FILE
+printFooter >> $XML_FILE
+
+echo "All done!"
+sleep 2
+
